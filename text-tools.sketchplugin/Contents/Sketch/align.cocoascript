@@ -1,0 +1,140 @@
+@import 'library.cocoascript'
+
+var AlignmentType = {
+    BASELINE   : 'alignmentTypeBaseline',
+    X_HEIGHT   : 'alignmentTypeXHeightHalf',
+    CAP_HEIGHT : 'alignmentTypeCapHeightHalf'
+};
+
+var AlignmentPosition = {
+    TOP    : 'alignmentPositionTop',
+    CENTER : 'alignmentPositionCenter',
+    BOTTOM : 'alignmentPositionBottom'
+};
+
+function getLayerOffset(layer,type,alignment){
+    if(lib.objTypeOf(layer,MSTextLayer)){
+        return getTextLayerOffset(layer,type,alignment);
+    } else{
+        var y;
+        switch (alignment){
+            case AlignmentPosition.CENTER:
+                y = -layer.frame().height() * 0.5;
+                break;
+        }
+        return y;
+    }
+}
+
+function getTextLayerOffset(layer,type,alignment){
+    var y;
+    var metrics = lib.relToAbsMetrics(lib.getFontMetrics(layer.font()));
+    switch (type){
+        case AlignmentType.BASELINE:
+            switch (alignment){
+                case AlignmentPosition.CENTER:
+                    y = -metrics.baselineHeight;
+                    break;
+            }
+            break;
+        case AlignmentType.X_HEIGHT:
+            switch (alignment){
+                case AlignmentPosition.CENTER:
+                    y = -metrics.xHeightCenter;
+                    break;
+            }
+            break;
+        case AlignmentType.CAP_HEIGHT:
+            switch (alignment){
+                case AlignmentPosition.CENTER:
+                    y = -metrics.capHeightCenter;
+                    break;
+            }
+            break;
+    }
+    return y;
+}
+
+function align(context,type,alignment){
+    var selection        = lib.getSelectionSimple(context);
+    var currentSelection = selection.currentSelection;
+    var hasTextLayer     = lib.layerArrayHasClassOfType(currentSelection,MSTextLayer);
+    var lenSelection     = currentSelection.count();
+
+    if(lenSelection == 0){
+        lib.warn(context,'Align: Nothing selected.');
+        return;
+
+    } else if(!hasTextLayer){
+        lib.warn(context,'Align: No Text Layer selected.');
+        return;
+
+    } else if(lenSelection == 1) {
+        var layer = currentSelection[0];
+
+        layer.frame().setY_(Math.floor(
+            selection.currentArtboard.frame().height() * 0.5 +
+            getTextLayerOffset(layer,type,alignment))
+        );
+        return;
+
+    }
+
+    var container = null;
+    for(var i = 0, item; i < lenSelection; ++i){
+        item = currentSelection[i];
+        var containsAll = true;
+        for(var j = 0; j < lenSelection; ++j){
+            if(j == i){
+                continue;
+            }
+            if(!lib.containsElementY(item,currentSelection[j])){
+                containsAll = false;
+                break;
+            }
+        }
+        if(containsAll){
+            container = item;
+            break;
+        }
+    }
+
+    if(container != null){
+        var y = container.frame().y() - getLayerOffset(container,type,alignment);
+        for(var i = 0, item; i < lenSelection; ++i){
+            item = currentSelection[i];
+            if(item == container){
+                continue;
+            }
+            item.frame().setY_(Math.floor(y + getLayerOffset(item,type,alignment)));
+        }
+        return;
+    }
+
+    var centersRel    = new Array(lenSelection);
+    var centersYTotal = 0;
+
+    for(var i = 0, item; i < lenSelection; ++i){
+        item = currentSelection[i];
+        centersRel[i] = getLayerOffset(item,type,alignment);
+        centersYTotal += item.frame().y() - centersRel[i];
+    }
+
+    var centerAvg = centersYTotal / lenSelection;
+    for(var i = 0; i < lenSelection; ++i){
+        currentSelection[i].frame().setY_(Math.floor(centerAvg + centersRel[i]));
+    }
+}
+
+function alignToBaselineCenter(context){
+    align(context,AlignmentType.BASELINE,AlignmentPosition.CENTER);
+
+}
+
+function alignToXHeightHalfCenter(context){
+    align(context,AlignmentType.X_HEIGHT,AlignmentPosition.CENTER);
+}
+
+function alignToCapHeightHalfCenter(context){
+    align(context,AlignmentType.CAP_HEIGHT,AlignmentPosition.CENTER);
+}

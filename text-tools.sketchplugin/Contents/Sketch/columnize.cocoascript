@@ -1,0 +1,171 @@
+@import 'library.cocoascript'
+
+function splitTextLayer(context,layer,numColumns,gutterWidth,columnsHeight){
+    var width = layer.frame().width();
+    if(numColumns * gutterWidth >= width){
+        lib.warn(context,'Columnize: Configuration exceeds Text Layer width.');
+        return;
+    }
+
+    var frame = layer.frame();
+    var columnsWidth = (frame.width() - gutterWidth * (numColumns - 1)) / numColumns;
+
+    var sourceStr = layer.stringValue();
+    var sourceTokens = sourceStr.split(' ');
+    var targetTokenIndexLast;
+    var targetTokenStrLast;
+
+    var ef  = layer.font();
+    var efs = layer.fontSize();
+    var ecs = layer.characterSpacing();
+    var els = layer.lineSpacing();
+    var eta = layer.textAlignment();
+    var etc = layer.textColor();
+
+    function updateRestoreStyle(){
+        layer.restoreStyle = function(){
+            this.setFont_(ef);
+            this.fontSize = efs;
+            this.characterSpacing = ecs;
+            this.lineSpacing = els;
+            this.textAlignment = eta;
+            this.textColor = etc;
+        }
+    }
+    updateRestoreStyle();
+
+    layer.stringValue = '';
+    frame.width = columnsWidth;
+    frame.height = 0;
+
+    var str;
+    var height;
+    var currStr;
+    var heightPrev = 0;
+    var offset;
+    var columnsAddedNum = 1;
+
+    //TODO: clean this up!
+    while(true){
+        currStr = layer.stringValue();
+
+        layer.stringValue = currStr + (currStr.length() > 0 ? ' ' : '') +  sourceTokens.shift();
+        layer.restoreStyle();
+
+        height = frame.height();
+
+        if(height > columnsHeight){ // detect end of column
+            str = layer.stringValue();
+
+            targetTokenIndexLast = str.lastIndexOf(' ');
+            targetTokenStrLast   = str.substring(targetTokenIndexLast+1,str.length());
+            layer.stringValue    = str.substring(0, targetTokenIndexLast);
+
+            layer.restoreStyle();
+            sourceTokens.unshift(targetTokenStrLast);
+
+            if(columnsAddedNum >= numColumns){
+                break;
+            }
+
+            if(sourceTokens.length != 0){
+                layer   = layer.duplicate();
+                offset  = frame.x();
+                frame   = layer.frame();
+                frame.x = offset + columnsWidth + gutterWidth;
+
+                updateRestoreStyle();
+
+                layer.stringValue = '';
+                columnsAddedNum++;
+
+            } else {
+                break;
+            }
+
+        } else if(height > heightPrev){ // detect end of line
+            str                  = layer.stringValue();
+            targetTokenIndexLast = str.lastIndexOf(' ');
+            targetTokenStrLast   = str.substring(targetTokenIndexLast+1,str.length());
+
+
+            heightPrev = frame.height();
+        } else if(sourceTokens.length == 0){ // no tokens left
+            break;
+        }
+    }
+}
+
+function columnize(context){
+    var selection = lib.getSelectionSimple(context);
+
+    if(!selection.hasSelection()){
+        lib.warn(context,'Columnize: Nothing selected.');
+        return;
+    }
+
+    var selectionFiltered = lib.filterLayersByClass(selection.currentSelection,MSTextLayer);
+
+    if(selectionFiltered.length == 0){
+        lib.warn(context,'Columnize: No Text Layer selected.');
+        return;
+    }
+
+    var viewWidth = 300;
+    var viewHeight = 120;
+
+    var labelWidth  = 110;
+    var inputWidth  = 120;
+    var inputOffset = 4;
+
+    var compStep    = 26;
+    var compOffsetV = viewHeight - 10;
+    var compHeight  = 20;
+
+    function createLabel(name){
+        return lib.createLabel(name,NSMakeRect(0,compOffsetV,labelWidth,compHeight));
+    }
+
+    function createInput(value){
+        return lib.createTextField(value,NSMakeRect(labelWidth,compOffsetV + inputOffset, inputWidth, compHeight));
+    }
+
+    compOffsetV -= compStep;
+    var labelNumColumns = createLabel('Num Columns');
+    var inputNumColumns = createInput(2);
+
+    compOffsetV -= compStep;
+    var labelColumnHeight = createLabel('Column Height');
+    var inputColumnHeight = createInput(200);
+
+    compOffsetV -= compStep;
+    var labelColumnGutter = createLabel('Gutter');
+    var inputColumnGutter = createInput(30);
+
+    var alert = lib.createAlertWithView(
+        "Text Tools",
+        lib.createViewWithSubviews(
+            NSMakeRect(0,0,viewWidth,viewHeight),[
+                labelNumColumns,   inputNumColumns,
+                labelColumnHeight, inputColumnHeight,
+                labelColumnGutter, inputColumnGutter
+            ]
+        ),
+        'Columnize Text Layer.'
+    );
+
+    alert.addButtonWithTitle_('OK');
+    alert.addButtonWithTitle_('Cancel');
+
+    if(alert.runModal() !== NSAlertFirstButtonReturn){
+        return;
+    }
+
+    var numColumns   = Math.max(0,+inputNumColumns.stringValue());
+    var columnHeight = Math.max(0,+inputColumnHeight.stringValue());
+    var gutter       = Math.max(0,+inputColumnGutter.stringValue());
+
+    for(var i = 0, l = selectionFiltered.length; i < l; ++i){
+        splitTextLayer(context,selectionFiltered[i],numColumns,gutter,columnHeight);
+    }
+}

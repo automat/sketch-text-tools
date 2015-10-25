@@ -1,0 +1,164 @@
+@import 'library.cocoascript'
+
+function createGuidePath(width,lineHeight,numLines,offset){
+    offset = offset || 0;
+
+    var path   = lib.createBezierPath();
+    var height = lineHeight - 1;
+
+    for(var i = 0; i < numLines; ++i){
+        lib.pathRect(path,0,offset + i * lineHeight,width,height);
+    }
+
+    return path;
+}
+
+function createGuideGroup(width,lineHeight,numLines,halfStep){
+    var guides = [];
+
+    var guideLineHeight = lib.createShapeFromPathWithStyle(
+        createGuidePath(width,lineHeight,numLines,0),
+        lib.createStyleFromDescription({fill : ['#979797', 0.35]})
+    );
+
+    guideLineHeight.setName_('guide');
+    guides.push(guideLineHeight);
+
+    if(halfStep){
+        var offset = Math.floor(lineHeight * 0.5);
+
+        var guideLineHeightOffset = lib.createShapeFromPathWithStyle(
+            createGuidePath(width,lineHeight,numLines-1,offset),
+            lib.createStyleFromDescription({fill : ['#979797', 0.135]})
+        );
+        guideLineHeightOffset.setName_('guide-1/2');
+        guides.push(guideLineHeightOffset);
+    }
+
+    var group = lib.createGroupFromLayers(guides);
+    group.setName_('baseline-guide@' + lineHeight + 'px');
+
+    return group;
+}
+
+function createBaselineGroupFromText(layer,halfStep){
+    halfStep = halfStep === undefined ? false : halfStep;
+
+    var frame      = layer.frame();
+    var metrics    = lib.relToAbsMetrics(lib.getFontMetrics(layer.font()));
+    var lineHeight = layer.lineSpacing();
+
+    var width    = frame.width();
+    var numLines = Math.round(frame.height() / lineHeight) + 1;
+
+    var group = createGuideGroup(width,lineHeight,numLines,halfStep);
+
+    group.frame().setX_(frame.x());
+    group.frame().setY_(frame.y() - (lineHeight - Math.floor(metrics.baselineHeight) - 1));
+    layer.parentGroup().insertLayers_beforeLayer_([group],layer);
+}
+
+function createFromText(context,halfStep){
+    var selection = lib.getSelectionSimple(context);
+
+    if(!selection.hasSelection()){
+        lib.warn(context,'Create Baseline Layer: Nothing selected.');
+        return;
+    }
+
+    var selectionFiltered = lib.filterLayersByClass(selection.currentSelection,MSTextLayer);
+    if(selection.currentSelection.count == 1 && selectionFiltered.length == 0){
+        lib.warn(context,'Create Baseline Layer: Selection not of type Text Layer-');
+        return;
+    } else if(selectionFiltered.length == 0){
+        lib.warn(context,'Create Baseline Layer: Selection does not contain any Text Layers.');
+        return;
+    }
+
+    for(var i = 0, l = selectionFiltered.length; i < l; ++i){
+        createBaselineGroupFromText(selectionFiltered[i],halfStep);
+    }
+}
+
+function createBaselineLayerFromText(context){
+    createFromText(context,false);
+}
+
+function createBaselineLayerFromTextHalf(context){
+    createFromText(context,true);
+}
+
+function createBaselineLayer(context){
+    var selection = lib.getSelectionSimple(context);
+
+    if(selection.currentArtboard == null){
+        lib.warn(context,'Create Baseline Layer: No Artboard selected');
+        return;
+    }
+
+    var viewWidth = 300;
+    var viewHeight = 120;
+
+    var labelWidth  = 110;
+    var inputWidth  = 120;
+    var inputOffset = 4;
+
+    var compStep    = 26;
+    var compOffsetV = viewHeight - 10;
+    var compHeight  = 20;
+
+    function createLabel(name){
+        return lib.createLabel(name,NSMakeRect(0,compOffsetV,labelWidth,compHeight));
+    }
+
+    function createInput(value){
+        return lib.createTextField(value,NSMakeRect(labelWidth,compOffsetV + inputOffset, inputWidth, compHeight));
+    }
+
+    compOffsetV -= compStep;
+    var labelLayerWidth = createLabel('Layer Width');
+    var inputLayerWidth = createInput(150);
+
+    compOffsetV -= compStep;
+    var labelLineHeight = createLabel('Line Height');
+    var inputLineHeight = createInput(22);
+
+    compOffsetV -= compStep;
+    var labelNumLines = createLabel('Num Lines');
+    var inputNumLines = createInput(50);
+
+    compOffsetV -= compStep;
+    var labelLineHeightHalfStep = createLabel('Line Height ½ Step');
+    var checkboxLineHeightHalfStep = lib.createCheckBox('fdsf',NSMakeRect(labelWidth,compOffsetV + inputOffset,20,20));
+
+    var alert = lib.createAlertWithView(
+        "Text Tools",
+        lib.createViewWithSubviews(
+            NSMakeRect(0,0,viewWidth,viewHeight),[
+                labelLayerWidth, inputLayerWidth,
+                labelLineHeight, inputLineHeight,
+                labelNumLines,   inputNumLines,
+                labelLineHeightHalfStep, checkboxLineHeightHalfStep
+            ]
+        ),
+        'Create a baseline layer.'
+    );
+    alert.addButtonWithTitle_('OK');
+    alert.addButtonWithTitle_('Cancel');
+
+    if(alert.runModal() !== NSAlertFirstButtonReturn){
+        return;
+    }
+
+    var width      = +inputLayerWidth.stringValue();
+    var lineHeight = +inputLineHeight.stringValue();
+    var numLines   = Math.floor(+inputNumLines.stringValue());
+    var halfStep   = checkboxLineHeightHalfStep.state() == NSOnState;
+
+    var group    = createGuideGroup(width,lineHeight,numLines,halfStep);
+    var artboard = selection.currentArtboard;
+
+    artboard.addLayers_([group]);
+
+    lib.centerElementToElement(group,artboard,true);
+}

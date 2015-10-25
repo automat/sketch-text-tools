@@ -1,0 +1,74 @@
+{
+  "name": "Text Tools",
+  "identifier": "io.shifted.text-tools",
+  "version": "0.1",
+  "description": "",
+  "author": "Henryk Wollik",
+  "authorEmail": "hwollik@hotmail.com",
+  "compatibleVersion": 3,
+  "bundleVersion": 1,
+  "commands": [
+    {
+      "script": "create-font-metrics.cocoascript",
+      "handler": "createTextFontMetrics",
+      "name": "Create Font Metrics From Text",
+      "identifier": "create-font-metrics"
+    },
+    {
+      "script": "create-baseline-layer.cocoascript",
+      "handler": "createBaselineLayer",
+      "name": "Create Baseline Layer",
+      "identifier": "create-baseline-layer"
+    },
+    {
+      "script": "create-baseline-layer.cocoascript",
+      "handler": "createBaselineLayerFromText",
+      "name": "Create Baseline Layer From Text",
+      "identifier": "create-baseline-layer-from-text-layer"
+    },
+    {
+      "script": "create-baseline-layer.cocoascript",
+      "handler": "createBaselineLayerFromTextHalf",
+      "name": "Create Baseline Layer From Text ½",
+      "identifier": "create-baseline-layer-from-text-layer-half"
+    },
+    {
+      "script": "align.cocoascript",
+      "handler": "alignToBaselineCenter",
+      "name": "Align To Baseline – Center",
+      "identifier": "align-to-baseline"
+    },
+    {
+      "script": "align.cocoascript",
+      "handler": "alignToXHeightHalfCenter",
+      "name": "Align To X-Height ½ – Center",
+      "identifier": "align-to-x-height-half"
+    },
+    {
+      "script": "align.cocoascript",
+      "handler": "alignToCapHeightHalfCenter",
+      "name": "Align To Cap-Height ½ – Center",
+      "identifier": "align-to-cap-height-half"
+    },
+    {
+      "script": "columnize.cocoascript",
+      "handler": "columnize",
+      "name": "Columnize Text",
+      "identifier": "columnize-text"
+    }
+  ],
+  "menu": {
+    "items": [
+      "align-to-baseline",
+      "align-to-x-height-half",
+      "align-to-cap-height-half",
+      "columnize-text",
+      "create-font-metrics",
+      "create-baseline-layer",
+      "create-baseline-layer-half",
+      "create-baseline-layer-from-text-layer",
+      "create-baseline-layer-from-text-layer-half"
+    ],
+    "title": "Text Tools"
+  }
+}

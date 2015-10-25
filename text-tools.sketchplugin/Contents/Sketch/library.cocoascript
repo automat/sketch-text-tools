@@ -1,0 +1,312 @@
+function printv(args){
+    for(var i = 0, l = arguments.length; i < l; ++i){
+        print(arguments[i]);
+    }
+}
+
+
+var lib = {};
+
+lib.warn = function(context,msg){
+    context.document.showMessage_(msg);
+};
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+// obj utitls
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+lib.objTypeOf = function(obj,class_){
+    return obj.class() == class_;
+};
+
+lib.CGPointToObj = function(point){
+    return {
+        x : point.x,
+        y : point.y
+    }
+};
+
+lib.CGSizeToObj = function(size){
+    return {
+        width : size.width,
+        height: size.height
+    }
+};
+
+lib.CGRectToObj = function(rect){
+    var origin = rect.origin;
+    var size   = rect.size;
+    return {
+        x : origin.x,
+        y : origin.y,
+        width: size.width,
+        height: size.height
+    };
+};
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+// Style
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+lib.createStyleFromDescription = function(description){
+    var style  = MSStyle.alloc().init();
+    var fill   = description.fill;
+    var border = description.border;
+
+    if(fill){
+        var styleFill        = style.fills().addNewStylePart();
+        var styleFillColor   = MSColor.colorWithSVGString(fill[0]);
+        styleFillColor.alpha = fill[1] || 1.0;
+        styleFill.color      = styleFillColor;
+    }
+
+    if(border){
+        var styleBorder        = style.borders().addNewStylePart();
+        var styleBorderColor   = MSColor.colorWithSVGString(border[0]);
+        styleBorderColor.alpha = border[1] || 1.0;
+        styleBorder.color      = styleBorderColor;
+    }
+
+    return style;
+};
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+// Shapes
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+lib.createBezierPath = function(){
+    return NSBezierPath.bezierPath();
+};
+
+lib.createShapeFromPathWithStyle = function(path,style){
+    var shape = MSShapeGroup.shapeWithBezierPath(path);
+    shape.setStyle(style);
+    return shape;
+};
+
+lib.pathMoveTo = function(path,x,y){
+    path.moveToPoint(NSMakePoint(x,y));
+};
+
+lib.pathLineTo = function(path,x,y){
+    path.lineToPoint(NSMakePoint(x,y));
+};
+
+lib.pathLine = function(path,x0,y0,x1,y1){
+    path.moveToPoint(NSMakePoint(x0,y0));
+    path.lineToPoint(NSMakePoint(x1,y1));
+};
+
+lib.pathLineH = function(path,x0,x1,y){
+    this.pathLine(path,x0,y,x1,y);
+};
+
+lib.pathLineV = function(path,x,y0,y1){
+    this.pathLine(path,x,y0,x,y1);
+};
+
+lib.pathRect = function(path,x,y,width,height){
+    path.appendBezierPathWithRect(NSMakeRect(x,y,width,height));
+};
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+// Groups & Layers
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+lib.filterLayersByClass = function(layers,class_){
+    var out = [];
+    var item;
+    var l = layers.objectEnumerator ? layers.count() : layers.length;
+
+    for(var i = 0; i < l; ++i){
+        item = layers[i];
+        if(!this.objTypeOf(item,class_)){
+            continue;
+        }
+        out.push(item);
+    }
+    return out;
+};
+
+lib.layerArrayHasClassOfType = function(layers,class_){
+   var hasClass = false;
+   var l = layers.objectEnumerator ? layers.count() : layers.length;
+
+    for(var i = 0; i < l; ++i){
+        if(this.objTypeOf(layers[i],class_)){
+            hasClass = true;
+            break;
+        }
+    }
+
+    return hasClass;
+};
+
+lib.containsElementY = function(elementA,elementB){
+    var frameA = elementA.frame();
+    var frameB = elementB.frame();
+
+    return (frameB.y() >= frameA.y()) && ((frameB.y() + frameB.height()) <= (frameA.y() + frameA.height()));
+};
+
+lib.centerElementToElement = function(elementA,elementB,floor){
+    var frameA = elementA.frame();
+    var frameB = elementB.frame();
+    var x = frameB.width() * 0.5 - frameA.width() * 0.5;
+    var y = frameB.height() * 0.5 - frameA.height() * 0.5;
+    if(floor){
+        x = Math.floor(x);
+        y = Math.floor(y);
+    }
+    frameA.setX_(x);
+    frameA.setY_(y);
+};
+
+lib.createGroupFromLayers = function(layers){
+    var group = MSLayerGroup.new();
+    group.addLayers(layers);
+    group.resizeRoot(true);
+    return group;
+};
+
+lib.getBoundsFromLayers = function(layers){
+    return MSLayerGroup.groupBoundsForLayers(layers);
+};
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+// Interface
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+lib.createViewWithSubviews = function(frame,subviews){
+    var view = NSView.alloc().initWithFrame_(frame);
+    view.setSubviews(subviews);
+    return view;
+};
+
+lib.createAlertWithView = function(messageText,view,informativeText){
+    var alert = NSAlert.alloc().init();
+    alert.setMessageText_(messageText);
+    alert.setAccessoryView_(view);
+    if(informativeText !== undefined){
+        alert.setInformativeText_(informativeText);
+    }
+    return alert;
+};
+
+lib.createLabel = function(name,frame,fontSize){
+    fontSize  = fontSize === undefined ? 11 : fontSize;
+
+    var label = NSTextField.alloc().initWithFrame_(frame);
+    label.setEditable_(false);
+    label.setSelectable_(false);
+    label.setBezeled_(false);
+    label.setDrawsBackground_(false);
+    label.setFont(NSFont.systemFontOfSize_(fontSize));
+    label.setStringValue_(name);
+    return label;
+};
+
+lib.createTextField = function(value,frame,placeholderValue){
+    var textfield = NSTextField.alloc().initWithFrame_(frame);
+    if(value !== null){
+        textfield.setStringValue_(""+value);
+    }
+    if(placeholderValue !== undefined){
+        textfield.setPlaceholderString_(""+value);
+    }
+    return textfield;
+};
+
+lib.createSelect = function(values, frame, initialState) {
+    var select = NSPopUpButton.alloc().initWithFrame_(frame);
+    select.addItemsWithTitles_(values);
+    select.setFont(NSFont.systemFontOfSize_(11));
+    select.selectItemWithTitle_(initialState);
+    return select;
+};
+
+lib.createCheckBox = function(name, frame, initialState) {
+    var btn = NSButton.alloc().initWithFrame_(frame);
+    btn.setButtonType_(NSSwitchButton);
+    btn.setState_(initialState || NSOffState);
+    btn.setTitle_(name);
+    return btn;
+};
+
+lib.createRadioButton = function(name,frame, initialState){
+    var btn = NSButton.alloc().initWithFrame_(frame);
+    btn.setButtonType_(NSRadioButton);
+};
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+// Font
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+lib.getFontMetrics = function(font){
+    return {
+        ascent  : font.ascender(),
+        descent : font.descender(),
+        capHeight : font.capHeight(),
+        xHeight   : font.xHeight(),
+        defaultLineHeight : font.defaultLineHeightForFont(),
+        italicAngle : font.italicAngle(),
+        maxAdvancement : this.CGSizeToObj(font.maximumAdvancement()),
+        boundingRect : this.CGRectToObj(font.boundingRectForFont())
+    }
+};
+
+lib.relToAbsMetrics = function(metrics){
+    var defaultLineHeight = metrics.defaultLineHeight;
+    var baselineHeight    = metrics.ascent;
+
+    return {
+        defaultLineHeight : defaultLineHeight,
+        baselineHeight    : baselineHeight,
+        descentHeight     : defaultLineHeight - metrics.descent,
+        capHeight         : baselineHeight - metrics.capHeight,
+        xHeight           : baselineHeight - metrics.xHeight,
+
+        capHeightCenter : baselineHeight - metrics.capHeight * 0.5,
+        xHeightCenter   : baselineHeight - metrics.xHeight * 0.5,
+
+        italicAngle    : metrics.italicAngle,
+        maxAdvancement : metrics.maxAdvancement,
+        boundingRect   : metrics.boundingRect
+    };
+};
+
+lib.getFontCharMetrics = function(font,char){
+    var charCode = char.charCodeAt(0);
+    return {
+        advancement : this.CGSizeToObj(font.advancementForGlyph_(charCode)),
+        boundingRect : this.CGRectToObj(font.boundingRectForGlyph_(charCode))
+    }
+};
+
+lib.getFontLeading = function(metrics,lineHeight){
+    return lineHeight - (metrics.ascent + metrics.descent);
+};
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+// Selection
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+lib.getSelectionSimple = function(context){
+    var document         = context.document;
+    var view             = document.currentView();
+    var currentPage      = document.currentPage();
+    var currentArtboard  = currentPage.currentArtboard();
+    var currentSelection = context.selection;
+    var hasSelection     = currentSelection.count() != 0;
+
+    return {
+        document         : document,
+        view             : view,
+        currentPage      : currentPage,
+        currentArtboard  : currentArtboard,
+        currentSelection : currentSelection,
+        hasSelection     : function(){
+            return hasSelection;
+        }
+    };
+};

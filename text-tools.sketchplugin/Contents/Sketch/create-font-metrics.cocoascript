@@ -1,0 +1,65 @@
+@import 'library.cocoascript'
+
+function createFontMetricsGroup(layer){
+    var font     = layer.font();
+    var fontName = font.fontName();
+    var fontSize = layer.fontSize();
+    var metrics = lib.getFontMetrics(font);
+    print(metrics);
+    var metrics  = lib.relToAbsMetrics(metrics);
+    var frame    = layer.frame();
+    var width    = frame.width();
+
+    var path  = lib.createBezierPath();
+
+    lib.pathLineH(path,0,width,0);
+    lib.pathLineH(path,0,width,metrics.capHeight);
+    lib.pathLineH(path,0,width,metrics.xHeight);
+    lib.pathLineH(path,0,width,metrics.baselineHeight);
+    lib.pathLineH(path,0,width,metrics.descentHeight);
+    lib.pathLineH(path,0,width,metrics.defaultLineHeight);
+
+    var guideMetrics = lib.createShapeFromPathWithStyle(path,
+        lib.createStyleFromDescription({border  : ['#0000ff', 0.35]})
+    );
+    guideMetrics.setName_('guides');
+
+    //guides metrics
+    path = lib.createBezierPath();
+    lib.pathLineH(path,0,width,metrics.capHeightCenter);
+    lib.pathLineH(path,0,width,metrics.xHeightCenter);
+
+    var guideCenters = lib.createShapeFromPathWithStyle(path,
+        lib.createStyleFromDescription({border : ['#ff0000', 0.35]})
+    );
+    guideCenters.setName_('guides-centers');
+
+    //out
+    var group = lib.createGroupFromLayers([guideMetrics,guideCenters]);
+    group.frame().setX_(frame.x());
+    group.frame().setY_(frame.y());
+    group.setName_(fontName + ' – metrics@' + fontSize + 'px');
+    layer.parentGroup().insertLayers_beforeLayer_([group],layer);
+}
+
+function createTextFontMetrics(context){
+    var selection = lib.getSelectionSimple(context);
+
+    if(!selection.hasSelection()){
+        lib.warn(context,'Create Font Metrics: Nothing selected.');
+        return;
+    }
+
+    var selectionFiltered = lib.filterLayersByClass(selection.currentSelection,MSTextLayer);
+    if(selection.currentSelection.count() == 1 && selectionFiltered.length == 0){
+        lib.warn(context,'Create Font Metrics: Selection not of type Text Layer.');
+        return;
+    } else if(selectionFiltered.length == 0) {
+        lib.warn(context,'Create Font Metrics: Selection does not contain any Text Layers.');
+        return;
+    }
+
+    for(var i = 0, l = selectionFiltered.length; i < l; ++i){
+        createFontMetricsGroup(selectionFiltered[i]);
+    }
+}
