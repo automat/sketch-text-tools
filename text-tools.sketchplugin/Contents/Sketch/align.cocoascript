@@ -1,61 +1,228 @@
 @import 'library.cocoascript'
 
-var AlignmentType = {
-    BASELINE   : 'alignmentTypeBaseline',
-    X_HEIGHT   : 'alignmentTypeXHeightHalf',
-    CAP_HEIGHT : 'alignmentTypeCapHeightHalf'
+var Reference = {
+    BASELINE   : 'Baseline',
+    X_HEIGHT   : 'X-Height',
+    CAP_HEIGHT : 'Cap-Height'
 };
 
-var AlignmentPosition = {
+var Alignment = {
     TOP    : 'alignmentPositionTop',
     CENTER : 'alignmentPositionCenter',
     BOTTOM : 'alignmentPositionBottom'
 };
 
-function getLayerOffset(layer,type,alignment){
-    if(lib.objTypeOf(layer,MSTextLayer)){
-        return getTextLayerOffset(layer,type,alignment);
-    } else{
+var Precision = {
+    SUB_PIXEL : 'Sub-Pixel',
+    FLOOR_NEAREST : 'Floor Nearest',
+    ROUND_NEAREST : 'Round Nearest'
+};
+
+function align(context,reference,alignmentReference,alignmentLayer,precision){
+    var selection        = lib.getSelectionSimple(context);
+    var currentSelection = selection.currentSelection;
+    var lenSelection     = currentSelection.count();
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+    // utils position + offset
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    function getLayerOffset(layer){
+        return lib.objTypeOf(layer,MSTextLayer) ? getTextLayerOffset(layer) : getNonTextLayerOffset(layer);
+    }
+
+    function getNonTextLayerOffset(layer){
+        var height = layer.frame().height();
+
         var y;
-        switch (alignment){
-            case AlignmentPosition.CENTER:
-                y = -layer.frame().height() * 0.5;
+        switch (alignmentLayer){
+            case Alignment.TOP:
+                y = 0;
+                break;
+            case Alignment.CENTER:
+                y = height * 0.5;
+                break;
+            case Alignment.BOTTOM:
+                y = height;
                 break;
         }
         return y;
     }
-}
 
-function getTextLayerOffset(layer,type,alignment){
-    var y;
-    var metrics = lib.relToAbsMetrics(lib.getFontMetrics(layer.font()));
-    switch (type){
-        case AlignmentType.BASELINE:
-            switch (alignment){
-                case AlignmentPosition.CENTER:
-                    y = -metrics.baselineHeight;
-                    break;
+    function getTextLayerOffset(layer){
+        var y;
+        var metrics = lib.relToAbsMetrics(lib.getFontMetrics(layer.font()));
+
+        switch (reference){
+            case Reference.BASELINE:
+                switch (alignmentReference){
+                    case Alignment.TOP:
+                    case Alignment.CENTER:
+                    case Alignment.BOTTOM:
+                        y = metrics.baselineHeight;
+                        break;
+                }
+                break;
+            case Reference.X_HEIGHT:
+                switch (alignmentReference){
+                    case Alignment.TOP:
+                        y = metrics.xHeight;
+                        break;
+                    case Alignment.CENTER:
+                        y = metrics.xHeightCenter;
+                        break;
+                    case Alignment.BOTTOM:
+                        y = metrics.baselineHeight;
+                        break;
+                }
+                break;
+            case Reference.CAP_HEIGHT:
+                switch (alignmentReference){
+                    case Alignment.TOP:
+                        y = metrics.capHeight;
+                        break;
+                    case Alignment.CENTER:
+                        y = metrics.capHeightCenter;
+                        break;
+                    case Alignment.BOTTOM:
+                        y = metrics.baselineHeight;
+                        break;
+                }
+                break;
+        }
+        return y;
+    }
+
+    function setLayerY(layer,y){
+        switch (precision){
+            case Precision.SUB_PIXEL:
+                break;
+            case Precision.FLOOR_NEAREST:
+                y = Math.floor(y);
+                break;
+            case Precision.ROUND_NEAREST:
+                y = Math.round(y);
+                break;
+        }
+        layer.frame().setY_(y);
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+    // positioning
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    if(lenSelection == 1){
+        var layer = currentSelection[0];
+        setLayerY(layer, getNonTextLayerOffset(selection.currentArtboard) + getTextLayerOffset(layer));
+        return;
+    }
+
+    var axis;
+    var offsets;
+
+    switch (alignmentLayer){
+
+        /*------------------------------------------------------------------------------------------------------------*/
+        // Layer Alignment Top
+        /*------------------------------------------------------------------------------------------------------------*/
+
+        case Alignment.TOP:
+            axis    = Number.MAX_VALUE;
+            offsets = new Array(lenSelection);
+
+            for(var i = 0, item, offset; i < lenSelection; ++i){
+                item   = currentSelection[i];
+                offset = offsets[i] = getLayerOffset(item);
+                axis   = Math.min(axis,item.frame().y() - offset);
             }
+
+            for(var i = 0, item; i < lenSelection; ++i){
+                setLayerY(currentSelection[i],axis - offsets[i]);
+            }
+
             break;
-        case AlignmentType.X_HEIGHT:
-            switch (alignment){
-                case AlignmentPosition.CENTER:
-                    y = -metrics.xHeightCenter;
+
+        /*------------------------------------------------------------------------------------------------------------*/
+        // Layer Alignment Center
+        /*------------------------------------------------------------------------------------------------------------*/
+
+        case Alignment.CENTER:
+            var container = null;
+            for(var i = 0, item; i < lenSelection; ++i){
+                item = currentSelection[i];
+                var containsAll = true;
+                for(var j = 0; j < lenSelection; ++j){
+                    if(j == i){
+                        continue;
+                    }
+                    if(!lib.containsElementY(item, currentSelection[j])){
+                        containsAll = false;
+                        break;
+                    }
+                }
+                if(containsAll){
+                    container = item;
                     break;
+                }
             }
+
+            if(container != null){
+                axis = container.frame().y() + getLayerOffset(container);
+
+                for(var i = 0, item; i < lenSelection; ++i){
+                    item = currentSelection[i];
+                    if(item == container){
+                        continue;
+                    }
+
+                    setLayerY(item, axis - getLayerOffset(item));
+                }
+                return;
+            }
+
+            offsets = new Array(lenSelection);
+            var axisMin  = Number.MAX_VALUE;
+            var axisMax = -Number.MAX_VALUE;
+
+            for(var i = 0, item, offset; i < lenSelection; ++i){
+                item   = currentSelection[i];
+                offset = offsets[i] = getLayerOffset(item);
+                axis   = item.frame().y() - offsets[i];
+
+                axisMin = Math.min(axis,axisMin);
+                axisMax = Math.max(axis,axisMax);
+            }
+
+            axis = (axisMin + axisMax) * 0.5;
+            for(var i = 0; i < lenSelection; ++i){
+                setLayerY(currentSelection[i], axis - offsets[i]);
+            }
+
             break;
-        case AlignmentType.CAP_HEIGHT:
-            switch (alignment){
-                case AlignmentPosition.CENTER:
-                    y = -metrics.capHeightCenter;
-                    break;
+
+        /*------------------------------------------------------------------------------------------------------------*/
+        // Layer Alignment Bottom
+        /*------------------------------------------------------------------------------------------------------------*/
+
+        case Alignment.BOTTOM:
+            axis    = -Number.MAX_VALUE;
+            offsets = new Array(lenSelection);
+
+            for(var i = 0, item, offset; i < lenSelection; ++i){
+                item   = currentSelection[i];
+                offset = offsets[i] = getLayerOffset(item);
+                axis   = Math.max(axis,item.frame().y() + offset);
             }
+
+            for(var i = 0, item; i < lenSelection; ++i){
+                setLayerY(currentSelection[i],axis - offsets[i]);
+            }
+
             break;
     }
-    return y;
 }
 
-function align(context,type,alignment){
+function alignText(context){
     var selection        = lib.getSelectionSimple(context);
     var currentSelection = selection.currentSelection;
     var hasTextLayer     = lib.layerArrayHasClassOfType(currentSelection,MSTextLayer);
@@ -69,72 +236,73 @@ function align(context,type,alignment){
         lib.warn(context,'Align: No Text Layer selected.');
         return;
 
-    } else if(lenSelection == 1) {
-        var layer = currentSelection[0];
+    }
 
-        layer.frame().setY_(Math.floor(
-            selection.currentArtboard.frame().height() * 0.5 +
-            getTextLayerOffset(layer,type,alignment))
-        );
+    //Danger!
+    var arrReference = lib.objValuesToArr(Reference);
+    var arrAlignment = lib.objValuesToArr(Alignment);
+    var arrPrecision = lib.objValuesToArr(Precision);
+
+    var viewWidth  = 320;
+    var viewHeight = 140;
+
+    var labelWidth  = 130;
+    var inputWidth  = 120;
+    var inputOffset = 4;
+
+    var compStep    = 29;
+    var compOffsetV = viewHeight - 10;
+    var compHeight  = 25;
+
+    function createLabel(name){
+        return lib.createLabel(name,NSMakeRect(0,compOffsetV,labelWidth,compHeight));
+    }
+
+    function createSegmentControl(selected){
+        var frame = NSMakeRect(labelWidth,compOffsetV + inputOffset, inputWidth, compHeight);
+        return lib.createImageSegmentedControl(context,3,frame,[
+            'align_top.tiff','align_vertically.tiff','align_bottom.tiff'
+        ],selected);
+    }
+
+    function createSelect(values,initialValue){
+        var frame = NSMakeRect(labelWidth,compOffsetV + inputOffset, inputWidth, compHeight);
+        return lib.createSelect(values,frame,initialValue);
+    }
+
+    compOffsetV -= compStep;
+    var labelReference = createLabel('Reference');
+    var inputReference = createSelect(arrReference,Reference.BASELINE);
+
+    compOffsetV -= compStep;
+    var labelReferenceAlignment = createLabel('Reference Alignment');
+    var inputReferenceAlignment = createSegmentControl(0);
+
+    compOffsetV -= compStep;
+    var labelLayerAlignment = createLabel('Layer Alignment');
+    var inputLayerAlignment = createSegmentControl(1);
+
+    compOffsetV -= compStep;
+    var labelPixelPrecision = createLabel('Pixel Precision');
+    var inputPixelPrecision = createSelect(arrPrecision,Precision.SUB_PIXEL);
+
+    var view = lib.createViewWithSubviews(
+        NSMakeRect(0, 0, viewWidth, viewHeight), [
+            labelReference,          inputReference,
+            labelReferenceAlignment, inputReferenceAlignment,
+            labelLayerAlignment,     inputLayerAlignment,
+            labelPixelPrecision,     inputPixelPrecision
+        ]
+    );
+
+    if(!lib.runModalAlert(view, 'Text Tools', 'Align Text Layer')){
         return;
-
     }
 
-    var container = null;
-    for(var i = 0, item; i < lenSelection; ++i){
-        item = currentSelection[i];
-        var containsAll = true;
-        for(var j = 0; j < lenSelection; ++j){
-            if(j == i){
-                continue;
-            }
-            if(!lib.containsElementY(item,currentSelection[j])){
-                containsAll = false;
-                break;
-            }
-        }
-        if(containsAll){
-            container = item;
-            break;
-        }
-    }
+    var reference          = "" + inputReference.titleOfSelectedItem();
+    var referenceAlignment = arrAlignment[inputReferenceAlignment.selectedSegment()];
+    var layerAlignment     = arrAlignment[inputLayerAlignment.selectedSegment()];
+    var precision          = "" + inputPixelPrecision.titleOfSelectedItem();
 
-    if(container != null){
-        var y = container.frame().y() - getLayerOffset(container,type,alignment);
-        for(var i = 0, item; i < lenSelection; ++i){
-            item = currentSelection[i];
-            if(item == container){
-                continue;
-            }
-            item.frame().setY_(Math.floor(y + getLayerOffset(item,type,alignment)));
-        }
-        return;
-    }
-
-    var centersRel    = new Array(lenSelection);
-    var centersYTotal = 0;
-
-    for(var i = 0, item; i < lenSelection; ++i){
-        item = currentSelection[i];
-        centersRel[i] = getLayerOffset(item,type,alignment);
-        centersYTotal += item.frame().y() - centersRel[i];
-    }
-
-    var centerAvg = centersYTotal / lenSelection;
-    for(var i = 0; i < lenSelection; ++i){
-        currentSelection[i].frame().setY_(Math.floor(centerAvg + centersRel[i]));
-    }
-}
-
-function alignToBaselineCenter(context){
-    align(context,AlignmentType.BASELINE,AlignmentPosition.CENTER);
-
-}
-
-function alignToXHeightHalfCenter(context){
-    align(context,AlignmentType.X_HEIGHT,AlignmentPosition.CENTER);
-}
-
-function alignToCapHeightHalfCenter(context){
-    align(context,AlignmentType.CAP_HEIGHT,AlignmentPosition.CENTER);
+    align(context,reference,referenceAlignment,layerAlignment,precision);
 }

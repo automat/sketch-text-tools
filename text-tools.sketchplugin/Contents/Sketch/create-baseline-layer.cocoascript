@@ -112,7 +112,7 @@ function createBaselineLayer(context){
     }
 
     function createInput(value){
-        return lib.createTextField(value,NSMakeRect(labelWidth,compOffsetV + inputOffset, inputWidth, compHeight));
+        return lib.createNumberField(value,NSMakeRect(labelWidth,compOffsetV + inputOffset, inputWidth, compHeight));
     }
 
     compOffsetV -= compStep;

@@ -11,7 +11,7 @@
     {
       "script": "create-font-metrics.cocoascript",
       "handler": "createTextFontMetrics",
-      "name": "Create Font Metrics From Text",
+      "name": "Create Font Metrics",
       "identifier": "create-font-metrics"
     },
     {
@@ -34,21 +34,9 @@
     },
     {
       "script": "align.cocoascript",
-      "handler": "alignToBaselineCenter",
-      "name": "Align To Baseline – Center",
-      "identifier": "align-to-baseline"
-    },
-    {
-      "script": "align.cocoascript",
-      "handler": "alignToXHeightHalfCenter",
-      "name": "Align To X-Height ½ – Center",
-      "identifier": "align-to-x-height-half"
-    },
-    {
-      "script": "align.cocoascript",
-      "handler": "alignToCapHeightHalfCenter",
-      "name": "Align To Cap-Height ½ – Center",
-      "identifier": "align-to-cap-height-half"
+      "handler": "alignText",
+      "name": "Align Text",
+      "identifier": "align-text"
     },
     {
       "script": "columnize.cocoascript",
@@ -59,9 +47,7 @@
   ],
   "menu": {
     "items": [
-      "align-to-baseline",
-      "align-to-x-height-half",
-      "align-to-cap-height-half",
+      "align-text",
       "columnize-text",
       "create-font-metrics",
       "create-baseline-layer",

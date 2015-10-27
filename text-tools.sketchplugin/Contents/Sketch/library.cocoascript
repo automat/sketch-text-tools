@@ -19,6 +19,14 @@ lib.objTypeOf = function(obj,class_){
     return obj.class() == class_;
 };
 
+lib.objValuesToArr = function(obj){
+    var out = [];
+    for(var p in obj){
+        out.push(obj[p]);
+    }
+    return out;
+};
+
 lib.CGPointToObj = function(point){
     return {
         x : point.x,
@@ -193,6 +201,15 @@ lib.createAlertWithView = function(messageText,view,informativeText){
     return alert;
 };
 
+lib.runModalAlert = function(view,messageText,invormativeText){
+    var alert = lib.createAlertWithView(messageText, view, invormativeText);
+
+    alert.addButtonWithTitle_('OK');
+    alert.addButtonWithTitle_('Cancel');
+
+    return alert.runModal() == NSAlertFirstButtonReturn
+};
+
 lib.createLabel = function(name,frame,fontSize){
     fontSize  = fontSize === undefined ? 11 : fontSize;
 
@@ -215,6 +232,30 @@ lib.createTextField = function(value,frame,placeholderValue){
         textfield.setPlaceholderString_(""+value);
     }
     return textfield;
+};
+
+lib.createImageSegmentedControl = function(context,numSegments,frame,imagePaths,selectedSegment){
+    var control = NSSegmentedControl.alloc().initWithFrame_(frame);
+    control.setSegmentCount_(numSegments);
+
+    var segWidth = frame.size.width / numSegments - (numSegments - 1); //pixel divider
+    var plugin   = context.plugin;
+
+    var images = new Array(numSegments);
+    for(var i = 0, image; i < numSegments; ++i){
+        image = images[i] = NSImage.alloc().initByReferencingFile_(
+            plugin.urlForResourceNamed_(imagePaths[i]).path()
+        );
+        image.setTemplate_(true);
+        control.setImage_forSegment_(image,i);
+        control.setWidth_forSegment_(segWidth,i);
+    }
+
+    if(selectedSegment !== undefined){
+        control.setSelectedSegment_(selectedSegment);
+    }
+
+    return control;
 };
 
 lib.createSelect = function(values, frame, initialState) {

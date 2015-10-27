@@ -111,7 +111,7 @@ function columnize(context){
         return;
     }
 
-    var viewWidth = 300;
+    var viewWidth  = 300;
     var viewHeight = 120;
 
     var labelWidth  = 110;
