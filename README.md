@@ -17,15 +17,15 @@ Extracts font metrics from text layer fonts. Creates a reference layer displayin
 
 Aligns selected text-layers and non-text-layers. Alignment is based on a metric reference, e.g. centering all layers on a shared baseline or aligning all layers at the x-height top.
 
-Option       | Description
------------- | -------------
-Reference | The reference metric to be used. (Baseline,X-Height,Cap-Height)
+Option              | Description
+------------------- | ---------------------------------------------------------------
+Reference           | The reference metric to be used. (Baseline,X-Height,Cap-Height)
 Reference Alignment | Alignment to the reference. (e.g. to x-height center or top)
-Layer Alignment | Alignment of text-layers and non-text-layers
-Pixel Precision | Precision of resulting layer y position px
+Layer Alignment     | Alignment of text-layers and non-text-layers
+Pixel Precision     | Precision of resulting layer y position px
 
 
-##Create Baseline
+##Create Baseline Layer
 
 ![Baseline Layer](text-tools-baseline-layer.gif)
 ![Baseline Layer](text-tools-baseline.png)
@@ -34,11 +34,11 @@ Pixel Precision | Precision of resulting layer y position px
 Creates a baseline reference layer either from text-layers or from configuration.
 
 Option       | Description
------------- | -------------
-Layer Width | The width of the baseline layer ('auto' on text-layers sets width to text-layer width)
-Line Height | The line height  ('auto' on text-layers sets line-height to text-layer line-height )
-Num Lines | The number of lines to display ('auto' on text-layers sets number of lines relative to text-layer height)
-½ Step | If enabled an additional guide displaying half the line-height will be added
+------------ | --------------------------------------------------------------------------------------
+Layer Width  | The width of the baseline layer ('auto' on text-layers sets width to text-layer width)
+Line Height  | The line height  ('auto' on text-layers sets line-height to text-layer line-height )
+Num Lines    | The number of lines to display ('auto' on text-layers sets number of lines relative to text-layer height)
+½ Step       | If enabled an additional guide displaying half the line-height will be added
 Shared Style | Choose a custom styling via shared styles
 
 
