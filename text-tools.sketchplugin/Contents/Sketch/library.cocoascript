@@ -77,6 +77,16 @@ lib.dictToObj = function(dict){
     return obj;
 };
 
+lib.indicesOf = function(obj,element){
+    var indices = [];
+    for(var i = 0, l = obj.length; i < l; ++i){
+        if(obj[i] == element){
+            indices.push(i);
+        }
+    }
+    return indices;
+};
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 // Style
 /*--------------------------------------------------------------------------------------------------------------------*/
