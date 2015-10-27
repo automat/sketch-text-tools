@@ -26,22 +26,18 @@ Extracts font metrics from text layer fonts. Creates a reference layer displayin
 ![Algin mixed selection](text-tools-mixed-align.gif)
 *Mixed selection aligned*
 
-###Cmd: Align To Baseline – Center
+![Align text](text-tools-alignment-panel.png)
 
-Aligns selected text-layers to a shared baseline. If non-text-layers are selected as well an average baseline gets created from text-layer baselines and non-text-layer centers.
+###Cmd: Align Text
 
-###Cmd: Align To X-Height ½ – Center
+Aligns selected text-layers and non-text-layers. Alignment is based on a metric reference, e.g. centering all layers on a shared baseline or aligning all layers at the x-height top.
 
-Aligns selected text-layers on a shared y-axis based on averaging all x-height centers. If non-text-layers are selected as well an average y-axis gets created from text-layer x-height centers and non-text-layer centers.
-
-###Cmd: Align To Cap-Height ½ – Center
-
-Aligns selected text-layers on a shared y-axis based on averaging all cap-height centers. If non-text-layers are selected as well an average y-axis gets created from text-layer cap-height centers and non-text-layer centers.
-
-
-*If one selected layer contains the rest of the selection its center will be used to align all other layers.*
-
-***Note: Only centering layers is supported at the moment, top- and bottom-alignment will come.***
+Option       | Description
+------------ | -------------
+Reference | The reference metric to be used. (Baseline,X-Height,Cap-Height)
+Reference Alignment | Alignment to the reference. (e.g. to x-height center or top)
+Layer Alignment | Alignment of text-layers and non-text-layers
+Pixel Precision | Precision of resulting layer y position px
 
 
 ##Baseline Guides
