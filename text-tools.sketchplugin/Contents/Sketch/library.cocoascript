@@ -301,6 +301,7 @@ lib.createCheckBox = function(name, frame, initialState) {
 
 lib.createRadioButton = function(name,frame, initialState){
     var btn = NSButton.alloc().initWithFrame_(frame);
+    btn.setState_(initialState || NSOffState);
     btn.setButtonType_(NSRadioButton);
 };
 

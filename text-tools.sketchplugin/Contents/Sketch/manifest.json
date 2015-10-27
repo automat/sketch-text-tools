@@ -21,18 +21,6 @@
       "identifier": "create-baseline-layer"
     },
     {
-      "script": "create-baseline-layer.cocoascript",
-      "handler": "createBaselineLayerFromText",
-      "name": "Create Baseline Layer From Text",
-      "identifier": "create-baseline-layer-from-text-layer"
-    },
-    {
-      "script": "create-baseline-layer.cocoascript",
-      "handler": "createBaselineLayerFromTextHalf",
-      "name": "Create Baseline Layer From Text ½",
-      "identifier": "create-baseline-layer-from-text-layer-half"
-    },
-    {
       "script": "align.cocoascript",
       "handler": "alignText",
       "name": "Align Text",
@@ -50,10 +38,7 @@
       "align-text",
       "columnize-text",
       "create-font-metrics",
-      "create-baseline-layer",
-      "create-baseline-layer-half",
-      "create-baseline-layer-from-text-layer",
-      "create-baseline-layer-from-text-layer-half"
+      "create-baseline-layer"
     ],
     "title": "Text Tools"
   }

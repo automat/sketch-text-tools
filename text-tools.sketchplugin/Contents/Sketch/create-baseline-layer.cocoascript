@@ -1,4 +1,5 @@
 @import 'library.cocoascript'
+@import 'shared.cocoascript'
 
 function createGuidePath(width,lineHeight,numLines,offset){
     offset = offset || 0;
@@ -41,15 +42,13 @@ function createGuideGroup(width,lineHeight,numLines,halfStep){
     return group;
 }
 
-function createBaselineGroupFromText(layer,halfStep){
-    halfStep = halfStep === undefined ? false : halfStep;
-
+function createBaselineGroupFromText(layer,width,lineHeight,numLines,halfStep){
     var frame      = layer.frame();
     var metrics    = lib.relToAbsMetrics(lib.getFontMetrics(layer.font()));
-    var lineHeight = layer.lineSpacing();
 
-    var width    = frame.width();
-    var numLines = Math.round(frame.height() / lineHeight) + 1;
+    width      = width == 'auto' ? frame.width() : width;
+    lineHeight = lineHeight == 'auto' ? layer.lineSpacing() : lineHeight;
+    numLines   = numLines == 'auto' ? (Math.round(frame.height() / lineHeight) + 1) : numLines;
 
     var group = createGuideGroup(width,lineHeight,numLines,halfStep);
 
@@ -58,107 +57,116 @@ function createBaselineGroupFromText(layer,halfStep){
     layer.parentGroup().insertLayers_beforeLayer_([group],layer);
 }
 
-function createFromText(context,halfStep){
-    var selection = lib.getSelectionSimple(context);
-
-    if(!selection.hasSelection()){
-        lib.warn(context,'Create Baseline Layer: Nothing selected.');
-        return;
-    }
-
-    var selectionFiltered = lib.filterLayersByClass(selection.currentSelection,MSTextLayer);
-    if(selection.currentSelection.count == 1 && selectionFiltered.length == 0){
-        lib.warn(context,'Create Baseline Layer: Selection not of type Text Layer-');
-        return;
-    } else if(selectionFiltered.length == 0){
-        lib.warn(context,'Create Baseline Layer: Selection does not contain any Text Layers.');
-        return;
-    }
-
-    for(var i = 0, l = selectionFiltered.length; i < l; ++i){
-        createBaselineGroupFromText(selectionFiltered[i],halfStep);
-    }
-}
-
-function createBaselineLayerFromText(context){
-    createFromText(context,false);
-}
-
-function createBaselineLayerFromTextHalf(context){
-    createFromText(context,true);
-}
-
 function createBaselineLayer(context){
     var selection = lib.getSelectionSimple(context);
 
-    if(selection.currentArtboard == null){
-        lib.warn(context,'Create Baseline Layer: No Artboard selected');
+    if(!selection.hasSelection() && selection.currentArtboard == null){
+        lib.warn(context, 'Create Baseline Layer: No Artboard selected');
         return;
     }
+
+    var selectionFiltered = !selection.hasSelection() ? [] : lib.filterLayersByClass(selection.currentSelection, MSTextLayer);
+    var selectionHasTextLayers = selectionFiltered.length != 0;
 
     var viewWidth = 300;
     var viewHeight = 120;
 
-    var labelWidth  = 110;
-    var inputWidth  = 120;
+    var labelWidth = 110;
+    var inputWidth = 120;
     var inputOffset = 4;
 
-    var compStep    = 26;
+    var compStep = 26;
     var compOffsetV = viewHeight - 10;
-    var compHeight  = 20;
+    var compHeight = 20;
 
     function createLabel(name){
-        return lib.createLabel(name,NSMakeRect(0,compOffsetV,labelWidth,compHeight));
+        return lib.createLabel(name, NSMakeRect(0, compOffsetV, labelWidth, compHeight));
     }
 
     function createInput(value){
-        return lib.createNumberField(value,NSMakeRect(labelWidth,compOffsetV + inputOffset, inputWidth, compHeight));
+        return lib.createTextField(value, NSMakeRect(labelWidth, compOffsetV + inputOffset, inputWidth, compHeight));
+    }
+
+    var defaults = {
+        width : 200,
+        lineHeight : 24,
+        numLines : 10,
+        halfStep : false
+    };
+
+    lib.createPluginDefaults(PLUGIN_ID, defaults, 'baseline');
+
+    var settings = lib.getPluginSettingsObj(PLUGIN_ID, 'baseline');
+
+    print(selectionHasTextLayers);
+
+    if(selectionHasTextLayers){
+        settings.width = 'auto';
+        settings.lineHeight = 'auto';
+        settings.numLines = 'auto';
+
+    }else{
+        settings.width = ("" + settings.width) == 'auto' ? defaults.width : settings.width;
+        settings.lineHeight = ("" + settings.lineHeight) == 'auto' ? defaults.lineHeight : settings.lineHeight;
+        settings.numLines = ("" + settings.numLines) == 'auto' ? defaults.numLines : settings.numLines;
     }
 
     compOffsetV -= compStep;
     var labelLayerWidth = createLabel('Layer Width');
-    var inputLayerWidth = createInput(150);
+    var inputLayerWidth = createInput(settings.width);
 
     compOffsetV -= compStep;
     var labelLineHeight = createLabel('Line Height');
-    var inputLineHeight = createInput(22);
+    var inputLineHeight = createInput(settings.lineHeight);
 
     compOffsetV -= compStep;
     var labelNumLines = createLabel('Num Lines');
-    var inputNumLines = createInput(50);
+    var inputNumLines = createInput(settings.numLines);
 
     compOffsetV -= compStep;
     var labelLineHeightHalfStep = createLabel('Line Height ½ Step');
-    var checkboxLineHeightHalfStep = lib.createCheckBox('fdsf',NSMakeRect(labelWidth,compOffsetV + inputOffset,20,20));
+    var checkboxLineHeightHalfStep = lib.createCheckBox('', NSMakeRect(labelWidth, compOffsetV + inputOffset, 20, 20), settings.halfStep);
 
-    var alert = lib.createAlertWithView(
-        "Text Tools",
-        lib.createViewWithSubviews(
-            NSMakeRect(0,0,viewWidth,viewHeight),[
-                labelLayerWidth, inputLayerWidth,
-                labelLineHeight, inputLineHeight,
-                labelNumLines,   inputNumLines,
-                labelLineHeightHalfStep, checkboxLineHeightHalfStep
-            ]
-        ),
-        'Create a baseline layer.'
+    var view = lib.createViewWithSubviews(
+        NSMakeRect(0, 0, viewWidth, viewHeight), [
+            labelLayerWidth, inputLayerWidth,
+            labelLineHeight, inputLineHeight,
+            labelNumLines, inputNumLines,
+            labelLineHeightHalfStep, checkboxLineHeightHalfStep
+        ]
     );
-    alert.addButtonWithTitle_('OK');
-    alert.addButtonWithTitle_('Cancel');
 
-    if(alert.runModal() !== NSAlertFirstButtonReturn){
+    if(!lib.runModalAlert(view, 'Text Tools', 'Create Baseline Layer')){
         return;
     }
 
-    var width      = +inputLayerWidth.stringValue();
-    var lineHeight = +inputLineHeight.stringValue();
-    var numLines   = Math.floor(+inputNumLines.stringValue());
-    var halfStep   = checkboxLineHeightHalfStep.state() == NSOnState;
+    var width = "" + inputLayerWidth.stringValue();
+    var lineHeight = "" + inputLineHeight.stringValue();
+    var numLines = "" + inputNumLines.stringValue();
+    var halfStep = checkboxLineHeightHalfStep.state() == NSOnState;
 
-    var group    = createGuideGroup(width,lineHeight,numLines,halfStep);
-    var artboard = selection.currentArtboard;
+    width = width != 'auto' ? +width : width;
+    lineHeight = lineHeight != 'auto' ? +lineHeight : lineHeight;
+    numLines = numLines != 'auto' ? Math.floor(+numLines) : numLines;
 
-    artboard.addLayers_([group]);
+    lib.synchronizePluginDefaults(PLUGIN_ID, {
+        width : width,
+        lineHeight : lineHeight,
+        numLines : numLines,
+        halfStep : halfStep
+    }, 'baseline');
 
-    lib.centerElementToElement(group,artboard,true);
+    if(!selectionHasTextLayers){
+        var group = createGuideGroup(width, lineHeight, numLines, halfStep);
+        var artboard = selection.currentArtboard;
+
+        artboard.addLayers_([group]);
+
+        lib.centerElementToElement(group, artboard, true);
+        return;
+    }
+
+    for(var i = 0, l = selectionFiltered.length; i < l; ++i){
+        createBaselineGroupFromText(selectionFiltered[i], width, lineHeight, numLines, halfStep);
+    }
 }
