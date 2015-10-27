@@ -11,10 +11,11 @@ This plugin eases working with typography in Sketch. It enables displaying font 
 
 Extracts font metrics from text layer fonts. Creates a reference layer displaying the fonts baseline, ascent, descent, x-height and cap-height as well as the default line-height relative to the font-size used ( *blue* ). Furthermore the x-height and cap-height center get displayed ( *red* ). Metrics get extracted for the first line of a text layer. width equals text-layer width.
 
-![Align Artboard](./text-tools-align.gif)
-![Align text](text-tools-alignment-panel.png)
 
 ##Align Text
+
+![Align Artboard](./text-tools-align.gif)
+![Align text](text-tools-alignment-panel.png)
 
 Aligns selected text-layers and non-text-layers. Alignment is based on a metric reference, e.g. centering all layers on a shared baseline or aligning all layers at the x-height top.
 
