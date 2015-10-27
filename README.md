@@ -1,5 +1,3 @@
-D R A F T
-
 #sketch-text-tools
 
 This plugin eases working with typography in Sketch. It enables displaying font metrics, aligning text-layers to text-layers or other layers relative to baseline, x-height and cap-height. Baseline grid reference layers can be extracted from text-layers or build with custom configurations. Text-layers can be split into several columns with specific gutter widths.
@@ -41,6 +39,7 @@ Layer Width | The width of the baseline layer ('auto' on text-layers sets width 
 Line Height | The line height  ('auto' on text-layers sets line-height to text-layer line-height )
 Num Lines | The number of lines to display ('auto' on text-layers sets number of lines relative to text-layer height)
 ½ Step | If enabled an additional guide displaying half the line-height will be added
+Shared Style | Choose a custom styling via shared styles
 
 
 ##Columnize
