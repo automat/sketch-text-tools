@@ -104,7 +104,7 @@ function align(context,reference,alignmentReference,alignmentLayer,precision){
                 y = Math.round(y);
                 break;
         }
-        layer.frame().setY_(y);
+        layer.setAbsolutePosition_(CGPointMake(layer.absolutePosition().x,y));
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -133,10 +133,10 @@ function align(context,reference,alignmentReference,alignmentLayer,precision){
             for(var i = 0, item, offset; i < lenSelection; ++i){
                 item   = currentSelection[i];
                 offset = offsets[i] = getLayerOffset(item);
-                axis   = Math.min(axis,item.frame().y() - offset);
+                axis   = Math.min(axis,item.absolutePosition().y - offset);
             }
 
-            for(var i = 0, item; i < lenSelection; ++i){
+            for(var i = 0; i < lenSelection; ++i){
                 setLayerY(currentSelection[i],axis - offsets[i]);
             }
 
@@ -167,7 +167,7 @@ function align(context,reference,alignmentReference,alignmentLayer,precision){
             }
 
             if(container != null){
-                axis = container.frame().y() + getLayerOffset(container);
+                axis = container.absolutePosition().y + getLayerOffset(container);
 
                 for(var i = 0, item; i < lenSelection; ++i){
                     item = currentSelection[i];
@@ -187,7 +187,7 @@ function align(context,reference,alignmentReference,alignmentLayer,precision){
             for(var i = 0, item, offset; i < lenSelection; ++i){
                 item   = currentSelection[i];
                 offset = offsets[i] = getLayerOffset(item);
-                axis   = item.frame().y() - offsets[i];
+                axis   = item.absolutePosition().y - offsets[i];
 
                 axisMin = Math.min(axis,axisMin);
                 axisMax = Math.max(axis,axisMax);
@@ -211,7 +211,7 @@ function align(context,reference,alignmentReference,alignmentLayer,precision){
             for(var i = 0, item, offset; i < lenSelection; ++i){
                 item   = currentSelection[i];
                 offset = offsets[i] = getLayerOffset(item);
-                axis   = Math.max(axis,item.frame().y() + offset);
+                axis   = Math.max(axis,item.absolutePosition().y + offset);
             }
 
             for(var i = 0, item; i < lenSelection; ++i){
