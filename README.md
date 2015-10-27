@@ -14,7 +14,7 @@ Extracts font metrics from text layer fonts. Creates a reference layer displayin
 
 ##Align Text
 
-![Align Artboard](./text-tools-align.gif)
+![Align text](text-tools-align.gif)
 ![Align text](text-tools-alignment-panel.png)
 
 Aligns selected text-layers and non-text-layers. Alignment is based on a metric reference, e.g. centering all layers on a shared baseline or aligning all layers at the x-height top.
@@ -29,8 +29,9 @@ Pixel Precision | Precision of resulting layer y position px
 
 ##Create Baseline
 
-![Baseline layer from text-layer](text-tools-baseline-layer-from-text.gif)
-![Baseline layer 1/2 from text-layer](text-tools-baseline-layer.gif)
+![Baseline Layer](text-tools-baseline-layer.gif)
+![Baseline Layer](text-tools-baseline.png)
+![Baseline Layer](text-tools-baseline-panel.png)
 
 Creates a baseline reference layer either from text-layers or from configuration.
 
@@ -44,7 +45,7 @@ Num Lines | The number of lines to display ('auto' on text-layers sets number of
 
 ##Columnize
 
-![alt text](./text-tools-columnize.gif)
+![Columnize](text-tools-columnize.gif)
 
 Splits a text-layer into multiple columns. Number of columns, gutter width and column height can be specified.
 
