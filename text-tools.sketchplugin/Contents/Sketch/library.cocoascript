@@ -52,6 +52,31 @@ lib.CGRectToObj = function(rect){
     };
 };
 
+lib.createDict = function(objects,keys){
+    return NSDictionary.dictionaryWithObjects_forKeys(objects, keys);
+};
+
+lib.objToDict = function(obj){
+    var keys = Object.keys(obj);
+    var values = new Array(keys.length);
+
+    for(var i = 0, l = keys.length; i < l; ++i){
+        values[i] = obj[""+keys[i]];
+    }
+
+    return lib.createDict(values,keys);
+};
+
+lib.dictToObj = function(dict){
+    var obj  = {};
+    var keys = dict.allKeys();
+    for(var i = 0, l = keys.count(), key; i < l; ++i){
+        key = keys[i];
+        obj[key] = dict.objectForKey_(key);
+    }
+    return obj;
+};
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 // Style
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -350,4 +375,56 @@ lib.getSelectionSimple = function(context){
             return hasSelection;
         }
     };
+};
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+// User Defaults
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+lib.createPluginDefaults = function(pluginId,defaults,group){
+    var userDefaults       = NSUserDefaults.standardUserDefaults();
+    var userDefaultsPlugin = userDefaults.objectForKey_(pluginId);
+
+    //userDefaults.removeObjectForKey_(pluginId);
+
+    if(!userDefaultsPlugin){
+        var entries = lib.objToDict(defaults);
+        userDefaults.setObject_forKey_(group ? lib.createDict([entries],[group]) : entries ,pluginId);
+        return;
+    }
+
+    if(group){
+        if(!userDefaultsPlugin.objectForKey_(group)){
+            var dict = NSMutableDictionary.alloc().init();
+            dict.setDictionary_(userDefaultsPlugin);
+            dict.setValue_forKey_(lib.objToDict(defaults),group);
+
+            userDefaults.setObject_forKey_(dict,pluginId);
+            userDefaults.synchronize();
+        }
+    }
+};
+
+lib.synchronizePluginDefaults = function(pluginId,valueMap,group){
+    var userDefaults       = NSUserDefaults.standardUserDefaults();
+    var userDefaultsPlugin = userDefaults.objectForKey_(pluginId);
+
+    var dict = NSMutableDictionary.alloc().init();
+    dict.setDictionary_(userDefaultsPlugin);
+
+    if(group){
+        dict.setObject_forKey_(lib.objToDict(valueMap),group);
+    } else {
+        for(var p in valueMap){
+            dict.setValue_forKey_(valueMap[p],p);
+        }
+    }
+
+    userDefaults.setObject_forKey_(dict,pluginId);
+    userDefaults.synchronize();
+};
+
+lib.getPluginSettingsObj = function(pluginId,group){
+    var userDefaultsPlugin = NSUserDefaults.standardUserDefaults().objectForKey_(pluginId);
+    return group ? lib.dictToObj(userDefaultsPlugin.objectForKey_(group)) : lib.dictToObj(userDefaultsPlugin);
 };

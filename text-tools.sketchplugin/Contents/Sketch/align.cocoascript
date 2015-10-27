@@ -1,4 +1,5 @@
 @import 'library.cocoascript'
+@import 'shared.cocoascript'
 
 var Reference = {
     BASELINE   : 'Baseline',
@@ -93,6 +94,22 @@ function align(context,reference,alignmentReference,alignmentLayer,precision){
         return y;
     }
 
+    function getLayerYBounds(layer){
+        var bounds = [0,0];
+        var y = layer.absolutePosition().y;
+
+        if(lib.objTypeOf(layer,MSTextLayer)){
+            var metrics = lib.relToAbsMetrics(lib.getFontMetrics(layer.font()));
+
+            bounds[0] = y - getTextLayerOffset(layer);
+            bounds[1] = y - metrics.baselineHeight;
+        } else {
+            bounds[0] = y;
+            bounds[1] = y + layer.frame().height();
+        }
+        return bounds;
+    }
+
     function setLayerY(layer,y){
         switch (precision){
             case Precision.SUB_PIXEL:
@@ -119,6 +136,7 @@ function align(context,reference,alignmentReference,alignmentLayer,precision){
 
     var axis;
     var offsets;
+    var index;
 
     switch (alignmentLayer){
 
@@ -130,13 +148,21 @@ function align(context,reference,alignmentReference,alignmentLayer,precision){
             axis    = Number.MAX_VALUE;
             offsets = new Array(lenSelection);
 
-            for(var i = 0, item, offset; i < lenSelection; ++i){
-                item   = currentSelection[i];
-                offset = offsets[i] = getLayerOffset(item);
-                axis   = Math.min(axis,item.absolutePosition().y - offset);
+            for(var i = 0, item, offset, yOrigin; i < lenSelection; ++i){
+                item    = currentSelection[i];
+                offset  = offsets[i] = getLayerOffset(item);
+                yOrigin = item.absolutePosition().y;
+
+                if(yOrigin - offset < axis){
+                    axis  = yOrigin + offset;
+                    index = i;
+                }
             }
 
             for(var i = 0; i < lenSelection; ++i){
+                if(index == i){
+                    continue;
+                }
                 setLayerY(currentSelection[i],axis - offsets[i]);
             }
 
@@ -184,18 +210,16 @@ function align(context,reference,alignmentReference,alignmentLayer,precision){
             var axisMin  = Number.MAX_VALUE;
             var axisMax = -Number.MAX_VALUE;
 
-            for(var i = 0, item, offset; i < lenSelection; ++i){
-                item   = currentSelection[i];
-                offset = offsets[i] = getLayerOffset(item);
-                axis   = item.absolutePosition().y - offsets[i];
+            for(var i = 0, bounds; i < lenSelection; ++i){
+                bounds = getLayerYBounds(currentSelection[i]);
 
-                axisMin = Math.min(axis,axisMin);
-                axisMax = Math.max(axis,axisMax);
+                axisMin = Math.min(bounds[0],axisMin);
+                axisMax = Math.max(bounds[1],axisMax);
             }
 
-            axis = (axisMin + axisMax) * 0.5;
+            axis = axisMin + (axisMax - axisMin) * 0.5;
             for(var i = 0; i < lenSelection; ++i){
-                setLayerY(currentSelection[i], axis - offsets[i]);
+                setLayerY(currentSelection[i], axis - getLayerOffset(currentSelection[i]));
             }
 
             break;
@@ -243,6 +267,15 @@ function alignText(context){
     var arrAlignment = lib.objValuesToArr(Alignment);
     var arrPrecision = lib.objValuesToArr(Precision);
 
+    lib.createPluginDefaults(PLUGIN_ID,{
+        reference : Reference.BASELINE,
+        referenceAlignment : Alignment.BOTTOM,
+        layerAlignment : Alignment.CENTER,
+        precision : Precision.SUB_PIXEL
+    },'align');
+
+    var settings = lib.getPluginSettingsObj(PLUGIN_ID,'align');
+
     var viewWidth  = 320;
     var viewHeight = 140;
 
@@ -272,19 +305,19 @@ function alignText(context){
 
     compOffsetV -= compStep;
     var labelReference = createLabel('Reference');
-    var inputReference = createSelect(arrReference,Reference.BASELINE);
+    var inputReference = createSelect(arrReference,settings.reference);
 
     compOffsetV -= compStep;
     var labelReferenceAlignment = createLabel('Reference Alignment');
-    var inputReferenceAlignment = createSegmentControl(0);
+    var inputReferenceAlignment = createSegmentControl(arrAlignment.indexOf("" + settings.referenceAlignment));
 
     compOffsetV -= compStep;
     var labelLayerAlignment = createLabel('Layer Alignment');
-    var inputLayerAlignment = createSegmentControl(1);
+    var inputLayerAlignment = createSegmentControl(arrAlignment.indexOf("" +settings.layerAlignment));
 
     compOffsetV -= compStep;
     var labelPixelPrecision = createLabel('Pixel Precision');
-    var inputPixelPrecision = createSelect(arrPrecision,Precision.SUB_PIXEL);
+    var inputPixelPrecision = createSelect(arrPrecision,settings.precision);
 
     var view = lib.createViewWithSubviews(
         NSMakeRect(0, 0, viewWidth, viewHeight), [
@@ -303,6 +336,13 @@ function alignText(context){
     var referenceAlignment = arrAlignment[inputReferenceAlignment.selectedSegment()];
     var layerAlignment     = arrAlignment[inputLayerAlignment.selectedSegment()];
     var precision          = "" + inputPixelPrecision.titleOfSelectedItem();
+
+    lib.synchronizePluginDefaults(PLUGIN_ID,{
+        reference : reference,
+        referenceAlignment : referenceAlignment,
+        layerAlignment : layerAlignment,
+        precision : precision
+    },'align');
 
     align(context,reference,referenceAlignment,layerAlignment,precision);
 }
