@@ -129,8 +129,9 @@ function align(context,reference,alignmentReference,alignmentLayer,precision){
     /*----------------------------------------------------------------------------------------------------------------*/
 
     if(lenSelection == 1){
-        var layer = currentSelection[0];
-        setLayerY(layer, getNonTextLayerOffset(selection.currentArtboard) + getTextLayerOffset(layer));
+        var layer    = currentSelection[0];
+        var artboard = selection.currentArtboard;
+        setLayerY(layer,artboard.absolutePosition().y + getNonTextLayerOffset(artboard) - getTextLayerOffset(layer));
         return;
     }
 
