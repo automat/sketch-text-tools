@@ -1,0 +1,75 @@
+@import 'library.cocoascript'
+
+function count(context){
+    var selection         = lib.getSelectionSimple(context);
+    var currentSelection  = selection.currentSelection;
+    var selectionFiltered = lib.filterLayersByClass(currentSelection,MSTextLayer);
+
+    if(currentSelection.length == 0){
+        lib.warn(context,'Count: Nothing selected.');
+        return;
+
+    } else if(selectionFiltered.length == 0){
+        lib.warn(context,'Count: No Text Layer selected.');
+        return;
+
+    } else if(selectionFiltered.length > 1){
+        lib.warn(context,'Count: Multiple Text Layers selected. Min and max number of characters ')
+    }
+
+    var layer = currentSelection[0];
+    var layoutManager = layer.layoutManager();
+
+    var lineRange    = NSMakeRange(0,0);
+    var glyphRange   = layoutManager.glyphRangeForTextContainer_(layer.textContainer());
+    var lineRangePtr = MOPointer.alloc().initWithValue_(lineRange);
+
+    var numCharsPerLine = [];
+
+    var yCurr = 0;
+    var yLast = -Number.MAX_VALUE;
+
+    var charIndex     = 0;
+    var charIndexLast = 0;
+    var numLines      = 0;
+
+    var numGlyphs = NSMaxRange(glyphRange);
+
+    while(charIndex < numGlyphs){
+        yCurr = layoutManager.lineFragmentRectForGlyphAtIndex_effectiveRange_(charIndex, lineRangePtr).origin.y;
+
+        if(yCurr > yLast){
+            numLines++;
+            yLast = yCurr;
+        }
+
+        charIndexLast = charIndex - numLines + 1; //linebreaks char
+        charIndex     = lineRange.location = NSMaxRange(lineRangePtr.value());
+
+        numCharsPerLine.push((charIndex - numLines) - charIndexLast);
+    }
+
+    numCharsPerLine[numCharsPerLine.length - 1]++;
+
+    var min =  Number.MAX_VALUE;
+    var max = -Number.MAX_VALUE;
+    var indexMin = 0;
+    var indexMax = 1;
+
+    for(var i = 0, l = numCharsPerLine.length, num; i < l; ++i){
+        num = numCharsPerLine[i];
+        if(num < min){
+            min = num;
+            indexMin = i + 1;
+        }
+        if(num > max){
+            max = num;
+            indexMax = i + 1;
+        }
+    }
+
+    lib.warn(context,'Count: (Minimum: ' + min + ' @ Line: ' + indexMin + ')' +
+                          ', (Maximum: ' + max + ' @ Line: ' + indexMax + ')' +
+                          ', (Total: ' + numGlyphs + ')');
+
+}

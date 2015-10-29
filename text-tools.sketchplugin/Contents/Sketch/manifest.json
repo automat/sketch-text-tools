@@ -27,6 +27,12 @@
       "identifier": "align-text"
     },
     {
+      "script": "count.cocoascript",
+      "handler": "count",
+      "name": "Count Characters Per Line",
+      "identifier": "count-characters"
+    },
+    {
       "script": "columnize.cocoascript",
       "handler": "columnize",
       "name": "Columnize Text",
@@ -38,7 +44,8 @@
       "align-text",
       "columnize-text",
       "create-font-metrics",
-      "create-baseline-layer"
+      "create-baseline-layer",
+      "count-characters"
     ],
     "title": "Text Tools"
   }
