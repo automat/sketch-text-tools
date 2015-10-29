@@ -4,11 +4,11 @@ This plugin eases working with typography in Sketch. It enables displaying font 
 
 ###Commands
 
-[**1. Create Font Metrics**](#1)
-[**2. Align Text**](#2)
-[**3. Create Baseline Layer**](#3)
-[**4. Count Characters Per Line**](#4)
-[**5. Columnize**](#5)
+[**1. Create Font Metrics**](#1)  
+[**2. Align Text**](#2)   
+[**3. Create Baseline Layer**](#3)   
+[**4. Count Characters Per Line**](#4)   
+[**5. Columnize**](#5)   
 
 ---
 
