@@ -208,7 +208,7 @@ lib.centerElementToElement = function(elementA,elementB,floor){
 lib.createGroupFromLayers = function(layers){
     var group = MSLayerGroup.new();
     group.addLayers(layers);
-    group.resizeRoot(true);
+    group.resizeToFitChildrenWithOption(0);
     return group;
 };
 
