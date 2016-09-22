@@ -55,7 +55,7 @@ function createBaselineGroupFromText(layer,width,lineHeight,numLines,halfStep,st
     var metrics    = lib.relToAbsMetrics(lib.getFontMetrics(layer.font()));
 
     width      = width      == MODE_AUTO ? frame.width() : width;
-    lineHeight = lineHeight == MODE_AUTO ? layer.lineSpacing() : lineHeight;
+    lineHeight = lineHeight == MODE_AUTO ? layer.lineHeight() : lineHeight;
     numLines   = numLines   == MODE_AUTO ? (Math.round(frame.height() / lineHeight) + 1) : numLines;
 
     var group = createGuideGroup(width,lineHeight,numLines,halfStep,style);

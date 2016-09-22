@@ -18,7 +18,7 @@ function splitTextLayer(context,layer,numColumns,gutterWidth,columnsHeight){
     var ef  = layer.font();
     var efs = layer.fontSize();
     var ecs = layer.characterSpacing();
-    var els = layer.lineSpacing();
+    var els = layer.lineHeight();
     var eta = layer.textAlignment();
     var etc = layer.textColor();
 
