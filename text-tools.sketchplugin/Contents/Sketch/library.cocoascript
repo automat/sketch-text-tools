@@ -97,15 +97,15 @@ lib.createStyleFromDescription = function(description){
     var border = description.border;
 
     if(fill){
-        var styleFill        = style.fills().addNewStylePart();
-        var styleFillColor   = MSColor.colorWithSVGString(fill[0]);
+        var styleFill        = style.addStylePartOfType(0);
+        var styleFillColor   = MSColor.colorWithRed_green_blue_alpha(fill[0].r, fill[0].g, fill[0].b, fill[0].a);
         styleFillColor.alpha = fill[1] || 1.0;
         styleFill.color      = styleFillColor;
     }
 
     if(border){
-        var styleBorder        = style.borders().addNewStylePart();
-        var styleBorderColor   = MSColor.colorWithSVGString(border[0]);
+        var styleBorder        = style.addStylePartOfType(1);
+        var styleBorderColor   = MSColor.colorWithRed_green_blue_alpha(border[0].r, border[0].g, border[0].b, border[0].a);
         styleBorderColor.alpha = border[1] || 1.0;
         styleBorder.color      = styleBorderColor;
     }
