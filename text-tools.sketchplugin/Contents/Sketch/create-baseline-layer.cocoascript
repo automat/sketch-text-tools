@@ -1,146 +1,184 @@
 @import 'library.cocoascript'
 @import 'shared.cocoascript'
 
-var DEFAULT_STYLE_PRIMARY   = {fill : ['#979797', 0.35 ]};
-var DEFAULT_STYLE_SECONDARY = {fill : ['#979797', 0.135]};
-var NO_STYLE  = 'No Style';
+var DEFAULT_STYLE_PRIMARY = {fill : ['#979797',0.35]};
+var DEFAULT_STYLE_SECONDARY = {fill : ['#979797',0.135]};
+var NO_STYLE = 'No Style';
 var MODE_AUTO = 'auto';
 
-function createGuidePath(width,lineHeight,numLines,offset){
-    offset = offset || 0;
-
-    var path   = lib.createBezierPath();
-    var height = lineHeight - 1;
-
+/**
+ * Creates path with stacked rect representing the baselines.
+ * @param width
+ * @param height
+ * @param numLines
+ */
+function createGuidePath(width,height,numLines){
+    var path = lib.createBezierPath();
     for(var i = 0; i < numLines; ++i){
-        lib.pathRect(path,0,offset + i * lineHeight,width,height);
+        lib.pathRect(path,0, i * height, width, height - 1);
     }
-
     return path;
 }
 
+/**
+ * Creates a baseline layer group.
+ * @param width
+ * @param lineHeight
+ * @param numLines
+ * @param halfStep
+ * @param style
+ */
 function createGuideGroup(width,lineHeight,numLines,halfStep,style){
-    var guides = [];
-
+    var layers = [];
     var useDefaultStyle = style == NO_STYLE;
-    var layerStyle      = useDefaultStyle ? lib.createStyleFromDescription(DEFAULT_STYLE_PRIMARY) : style.newInstance();
+    style = useDefaultStyle ? lib.createStyle(DEFAULT_STYLE_PRIMARY) : style.newInstance();
 
-    var guideLineHeight = lib.createShapeFromPathWithStyle(createGuidePath(width,lineHeight,numLines,0),layerStyle);
+    // create primary baseline layer
+    var layer = lib.createShapeFromPath(createGuidePath(width,lineHeight,numLines));
+    layer.setStyle_(style);
+    layer.setName_("guide");
+    layers.push(layer);
 
-    guideLineHeight.setName_('guide');
-    guides.push(guideLineHeight);
-
+    // create secondary baseline layer
     if(halfStep){
-        layerStyle = useDefaultStyle ? lib.createStyleFromDescription(DEFAULT_STYLE_SECONDARY) : layerStyle;
-
         var offset = Math.floor(lineHeight * 0.5);
-
-        var guideLineHeightOffset = lib.createShapeFromPathWithStyle(
-            createGuidePath(width,lineHeight,numLines-1,offset),
-            layerStyle
-        );
-
-        guideLineHeightOffset.setName_('guide-1/2');
-        guides.push(guideLineHeightOffset);
+        layer = lib.createShapeFromPath(createGuidePath(width,lineHeight,numLines-1));
+        layer.setStyle_(useDefaultStyle ? lib.createStyle(DEFAULT_STYLE_SECONDARY) : style);
+        layer.frame().setY_(offset);
+        layer.setName_('guide-1/2');
+        layers.push(layer);
     }
 
-    var group = lib.createGroupFromLayers(guides);
+    // create group
+    var group = lib.createGroupFromLayers(layers);
     group.setName_('baseline-guide@' + lineHeight + 'px');
-
     return group;
 }
 
+/**
+ * Creates a bseline layer group from text layer.
+ * @param {MSTextLayer} layer - The text layer reference
+ * @param {number|string} width - The width, if set 'auto' equals text layer width.
+ * @param {number|string} lineHeight - The line height, if set 'auto' equals text layer height.
+ * @param {number|string} numLines - The number of baseline guides, if if set 'auto' equals text layer num layers.
+ * @param {boolean} halfStep - If true an additional guide at half the baseline height will be created.
+ * @param {MSStyle} [style] - The style to be used.
+ */
 function createBaselineGroupFromText(layer,width,lineHeight,numLines,halfStep,style){
-    var frame      = layer.frame();
-    var metrics    = lib.relToAbsMetrics(lib.getFontMetrics(layer.font()));
+    if(width == 0 || numLines == 0){
+        return;
+    }
+    var frame = layer.frame();
+    var metrics = lib.relToAbsMetrics(lib.getFontMetrics(layer.font()));
+    var baselineOffsets = layer.baselineOffsets();
 
-    width      = width      == MODE_AUTO ? frame.width() : width;
-    lineHeight = lineHeight == MODE_AUTO ? layer.lineHeight() : lineHeight;
-    numLines   = numLines   == MODE_AUTO ? (Math.round(frame.height() / lineHeight) + 1) : numLines;
+    // width
+    if(width == MODE_AUTO){
+        width = frame.width();
+    }
 
+    // line height
+    if(lineHeight == MODE_AUTO){
+        var layerLineHeight = layer.lineHeight();
+        if(baselineOffsets.length == 1){
+            lineHeight = layerLineHeight || metrics.defaultLineHeight;
+        } else {
+            lineHeight = baselineOffsets[1] - baselineOffsets[0];
+        }
+    }
+
+    // number of lines
+    if(numLines == MODE_AUTO){
+        numLines = baselineOffsets.length;
+    }
+
+    // create layer
+    var offset = lineHeight - Math.floor(layer.firstBaselineOffset());
     var group = createGuideGroup(width,lineHeight,numLines,halfStep,style);
-
     group.frame().setX_(frame.x());
-    group.frame().setY_(frame.y() - (lineHeight - Math.floor(metrics.baselineHeight) - 1));
+    group.frame().setY_(frame.y() - offset + 1);
     layer.parentGroup().insertLayers_beforeLayer_([group],layer);
 }
 
+/**
+ * "Create Baseline Layer" - Action
+ * @param context
+ */
 function createBaselineLayer(context){
     var selection = lib.getSelectionSimple(context);
 
     if(!selection.hasSelection() && selection.currentArtboard == null){
-        lib.warn(context, 'Create Baseline Layer: No Artboard selected');
+        lib.warn(context,'Create Baseline Layer: No Artboard selected');
         return;
     }
 
-    var selectionFiltered = !selection.hasSelection() ? [] : lib.filterLayersByClass(selection.currentSelection, MSTextLayer);
+    var selectionFiltered = !selection.hasSelection() ? [] : lib.filterLayersByClass(selection.currentSelection,MSTextLayer);
     var selectionHasTextLayers = selectionFiltered.length != 0;
 
-    var viewWidth  = 300;
+    var viewWidth = 300;
     var viewHeight = 150;
 
-    var labelWidth  = 110;
-    var inputWidth  = 120;
+    var labelWidth = 110;
+    var inputWidth = 120;
     var inputOffset = 4;
 
-    var compStep    = 26;
+    var compStep = 26;
     var compOffsetV = viewHeight - 10;
-    var compHeight  = 20;
+    var compHeight = 20;
 
     function createLabel(name){
-        return lib.createLabel(name, NSMakeRect(0, compOffsetV, labelWidth, compHeight));
+        return lib.createLabel(name,NSMakeRect(0,compOffsetV,labelWidth,compHeight));
     }
 
     function createInput(value){
-        return lib.createTextField(value, NSMakeRect(labelWidth, compOffsetV + inputOffset, inputWidth, compHeight));
+        return lib.createTextField(value,NSMakeRect(labelWidth,compOffsetV + inputOffset,inputWidth,compHeight));
     }
 
     function createSelect(values,initialValue){
-        var frame = NSMakeRect(labelWidth,compOffsetV + inputOffset-2, inputWidth, compHeight+2);
+        var frame = NSMakeRect(labelWidth,compOffsetV + inputOffset - 2,inputWidth,compHeight + 2);
         return lib.createSelect(values,frame,initialValue);
     }
 
     var defaults = {
-        width      : 200,
+        width : 200,
         lineHeight : 24,
-        numLines   : 10,
-        halfStep   : false,
-        style      : NO_STYLE
+        numLines : 10,
+        halfStep : false,
+        style : NO_STYLE
     };
 
-    lib.createPluginDefaults(PLUGIN_ID, defaults, 'baseline');
+    lib.createPluginDefaults(PLUGIN_ID,defaults,'baseline');
 
-    var settings = lib.getPluginSettingsObj(PLUGIN_ID, 'baseline');
+    var settings = lib.getPluginSettingsObj(PLUGIN_ID,'baseline');
 
     var sharedStylesContainer = selection.document.documentData().layerStyles();
-    var sharedStyles          = new Array(sharedStylesContainer.numberOfSharedStyles());
-    var sharedStyleNames      = new Array(sharedStyles.length);
+    var sharedStyles = new Array(sharedStylesContainer.numberOfSharedStyles());
+    var sharedStyleNames = new Array(sharedStyles.length);
 
     //style name?
     function getNameFromDescription(description){
         description = "" + description;
 
         var indexBegin = lib.indicesOf(description,'>')[0] + 1;
-        var indexEnd   = lib.indicesOf(description,'(');
-            indexEnd   = indexEnd[indexEnd.length - 1] - 1;
+        var indexEnd = lib.indicesOf(description,'(');
+        indexEnd = indexEnd[indexEnd.length - 1] - 1;
 
-        return description.substring(indexBegin+1,indexEnd);
+        return description.substring(indexBegin + 1,indexEnd);
     }
 
-    for(var i = 0, l = sharedStyles.length; i < l; ++i){
-        sharedStyles[i]     = sharedStylesContainer.sharedStyleAtIndex(i);
+    for(var i = 0,l = sharedStyles.length; i < l; ++i){
+        sharedStyles[i] = sharedStylesContainer.sharedStyleAtIndex(i);
         sharedStyleNames[i] = getNameFromDescription(sharedStyles[i].description());
     }
 
     if(selectionHasTextLayers){
-        settings.width      = MODE_AUTO;
+        settings.width = MODE_AUTO;
         settings.lineHeight = MODE_AUTO;
-        settings.numLines   = MODE_AUTO;
-
+        settings.numLines = MODE_AUTO;
     }else{
-        settings.width      = ("" + settings.width)      == MODE_AUTO ? defaults.width      : settings.width;
+        settings.width = ("" + settings.width) == MODE_AUTO ? defaults.width : settings.width;
         settings.lineHeight = ("" + settings.lineHeight) == MODE_AUTO ? defaults.lineHeight : settings.lineHeight;
-        settings.numLines   = ("" + settings.numLines)   == MODE_AUTO ? defaults.numLines   : settings.numLines;
+        settings.numLines = ("" + settings.numLines) == MODE_AUTO ? defaults.numLines : settings.numLines;
     }
 
     settings.style = sharedStyleNames.indexOf("" + settings.style) != -1 ? settings.style : NO_STYLE;
@@ -158,58 +196,57 @@ function createBaselineLayer(context){
     var inputNumLines = createInput(settings.numLines);
 
     compOffsetV -= compStep;
-    var labelLineHeightHalfStep    = createLabel('Line Height ½ Step');
-    var checkboxLineHeightHalfStep = lib.createCheckBox('', NSMakeRect(labelWidth, compOffsetV + inputOffset, 20, 18), settings.halfStep);
+    var labelLineHeightHalfStep = createLabel('Line Height ½ Step');
+    var checkboxLineHeightHalfStep = lib.createCheckBox('',NSMakeRect(labelWidth,compOffsetV + inputOffset,20,18),settings.halfStep);
 
     compOffsetV -= compStep;
-    var labelSharedStyle  = createLabel('Shared Style');
+    var labelSharedStyle = createLabel('Shared Style');
     var selectSharedStyle = createSelect([NO_STYLE].concat(sharedStyleNames),settings.style);
 
     var view = lib.createViewWithSubviews(
-        NSMakeRect(0, 0, viewWidth, viewHeight), [
-            labelLayerWidth, inputLayerWidth,
-            labelLineHeight, inputLineHeight,
-            labelNumLines, inputNumLines,
-            labelLineHeightHalfStep, checkboxLineHeightHalfStep,
-            labelSharedStyle, selectSharedStyle
+        NSMakeRect(0,0,viewWidth,viewHeight),[
+            labelLayerWidth,inputLayerWidth,
+            labelLineHeight,inputLineHeight,
+            labelNumLines,inputNumLines,
+            labelLineHeightHalfStep,checkboxLineHeightHalfStep,
+            labelSharedStyle,selectSharedStyle
         ]
     );
 
-    if(!lib.runModalAlert(view, 'Text Tools', 'Create Baseline Layer')){
+    if(!lib.runModalAlert(view,'Text Tools','Create Baseline Layer')){
         return;
     }
 
-    var width      = "" + inputLayerWidth.stringValue();
+    var width = "" + inputLayerWidth.stringValue();
     var lineHeight = "" + inputLineHeight.stringValue();
-    var numLines   = "" + inputNumLines.stringValue();
-    var halfStep   = checkboxLineHeightHalfStep.state() == NSOnState;
-    var style      = "" + selectSharedStyle.titleOfSelectedItem();
+    var numLines = "" + inputNumLines.stringValue();
+    var halfStep = checkboxLineHeightHalfStep.state() == NSOnState;
+    var style = "" + selectSharedStyle.titleOfSelectedItem();
 
-    width      = width      != MODE_AUTO ? +width : width;
+    width = width != MODE_AUTO ? +width : width;
     lineHeight = lineHeight != MODE_AUTO ? +lineHeight : lineHeight;
-    numLines   = numLines   != MODE_AUTO ? Math.floor(+numLines) : numLines;
+    numLines = numLines != MODE_AUTO ? Math.floor(+numLines) : numLines;
 
-    lib.synchronizePluginDefaults(PLUGIN_ID, {
-        width      : width,
+    lib.synchronizePluginDefaults(PLUGIN_ID,{
+        width : width,
         lineHeight : lineHeight,
-        numLines   : numLines,
-        halfStep   : halfStep,
-        style      : style
-    }, 'baseline');
+        numLines : numLines,
+        halfStep : halfStep,
+        style : style
+    },'baseline');
 
     style = style != NO_STYLE ? sharedStyles[sharedStyleNames.indexOf(style)] : style;
 
+    // create baseline group from settings
     if(!selectionHasTextLayers){
         var group = createGuideGroup(width, lineHeight, numLines, halfStep, style);
-        var artboard = selection.currentArtboard;
-
-        artboard.addLayers_([group]);
-
-        lib.centerElementToElement(group, artboard, true);
+        selection.currentArtboard.addLayers_([group]);
+        lib.centerElementToElement(group,selection.currentArtboard,true);
         return;
     }
 
-    for(var i = 0, l = selectionFiltered.length; i < l; ++i){
+    // create baseline group from text layers
+    for(var i = 0; i < selectionFiltered.length; ++i){
         createBaselineGroupFromText(selectionFiltered[i], width, lineHeight, numLines, halfStep, style);
     }
 }
