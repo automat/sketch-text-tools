@@ -1,5 +1,9 @@
 @import 'library.cocoascript'
 
+/**
+ * 'Count Character Per Line' - Action
+ * @param context
+ */
 function count(context){
     var selection         = lib.getSelectionSimple(context);
     var currentSelection  = selection.currentSelection;
@@ -18,10 +22,13 @@ function count(context){
     }
 
     var layer = currentSelection[0];
-    var layoutManager = layer.layoutManager();
 
-    var lineRange    = NSMakeRange(0,0);
-    var glyphRange   = layoutManager.glyphRangeForTextContainer_(layer.textContainer());
+    var storage = layer.createTextStorage();
+    var manager = storage.layoutManagers()[0];
+    var container = manager.textContainers()[0];
+
+    var lineRange = NSMakeRange(0,0);
+    var glyphRange = manager.glyphRangeForTextContainer_(container);
     var lineRangePtr = MOPointer.alloc().initWithValue_(lineRange);
 
     var numCharsPerLine = [];
@@ -36,7 +43,7 @@ function count(context){
     var numGlyphs = NSMaxRange(glyphRange);
 
     while(charIndex < numGlyphs){
-        yCurr = layoutManager.lineFragmentRectForGlyphAtIndex_effectiveRange_(charIndex, lineRangePtr).origin.y;
+        yCurr = manager.lineFragmentRectForGlyphAtIndex_effectiveRange_(charIndex, lineRangePtr).origin.y;
 
         if(yCurr > yLast){
             numLines++;
@@ -56,8 +63,8 @@ function count(context){
     var indexMin = 0;
     var indexMax = 1;
 
-    for(var i = 0, l = numCharsPerLine.length, num; i < l; ++i){
-        num = numCharsPerLine[i];
+    for(var i = 0; i < numCharsPerLine.length; ++i){
+        var num = numCharsPerLine[i];
         if(num < min){
             min = num;
             indexMin = i + 1;
@@ -68,8 +75,9 @@ function count(context){
         }
     }
 
-    lib.warn(context,'Count: (Minimum: ' + min + ' @ Line: ' + indexMin + ')' +
-                          ', (Maximum: ' + max + ' @ Line: ' + indexMax + ')' +
-                          ', (Total: ' + numGlyphs + ')');
-
+    lib.warn(context,
+        'Count: (Minimum: ' + min + ' @ Line: ' + indexMin + ')' +
+        ', (Maximum: ' + max + ' @ Line: ' + indexMax + ')' +
+        ', (Total: ' + numGlyphs + ')'
+    );
 }
