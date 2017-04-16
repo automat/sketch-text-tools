@@ -15,6 +15,7 @@ This plugin eases working with typography in Sketch. It enables displaying font 
 ---
 
 <a name="1"/>
+
 ## 1. Create Font Metrics
 
 ![Font Metric](./readme/text-tools-font-metrics.gif)
@@ -22,6 +23,7 @@ This plugin eases working with typography in Sketch. It enables displaying font 
 Extracts font metrics from text layer fonts. Creates a reference layer displaying the fonts baseline, ascent, descent, x-height and cap-height as well as the default line-height relative to the font-size used ( *blue* ). Furthermore the x-height and cap-height center get displayed ( *red* ). Metrics get extracted for the first line of a text layer. width equals text-layer width.
 
 <a name="2"/>
+
 ## 2. Align Text
 
 ![Align text](./readme/text-tools-align.gif)
@@ -37,6 +39,7 @@ Layer Alignment     | Alignment of text-layers and non-text-layers
 Pixel Precision     | Precision of resulting layer y position px
 
 <a name="3"/>
+
 ## 3. Create Baseline Layer
 
 ![Baseline Layer](./readme/text-tools-baseline-layer.gif)
@@ -54,11 +57,13 @@ Num Lines    | The number of lines to display ('auto' on text-layers sets number
 Shared Style | Choose a custom styling via shared styles
 
 <a name="4"/>
+
 ## 4. Count Characters Per Line
 
 Counts characters of all lines within a text layer. Shows the minimum and maximum amount of characters, the line indices for both values as well as the total amount of characters. 
 
 <a name="5"/>
+
 ## 5. Columnize
 
 ![Columnize](./readme/text-tools-columnize.gif)
